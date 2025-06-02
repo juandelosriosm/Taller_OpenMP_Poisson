@@ -1,0 +1,48 @@
+Archivos disponibles
+
+    poisson_tareas.cpp
+
+    poisson_sincronizacion3.cpp
+
+    poisson_serial_3.cpp
+
+    poisson_sections3.cpp
+
+    poisson_schedule3.cpp
+
+    poisson_parallel1_3.cpp
+
+    poisson_contar_iteraciones3.cpp
+
+    poisson_collapse_3.cpp
+
+Cada programa tiene diferentes enfoques para paralelizar la solución numérica, desde ejecución serial hasta uso de tareas (task), secciones, manejo de sincronización, y estrategias de scheduling.
+Uso del Makefile
+
+El Makefile incluido automatiza la compilación y ejecución de cualquiera de los programas.
+Comandos básicos
+
+    Compilar todos los programas:
+
+make
+
+    Limpiar ejecutables y archivos temporales:
+
+make clean
+
+    Compilar y ejecutar un programa específico con medición de tiempo:
+
+make run
+
+Este comando abrirá un menú interactivo que te pedirá ingresar el nombre del programa que deseas compilar y ejecutar (sin la extensión .cpp).
+
+Ejemplo de entrada:
+
+Nombre del programa (sin .cpp): poisson_collapse_3
+
+Luego compilará ese archivo con optimización -O3 y soporte para OpenMP, y lo ejecutará mostrando el tiempo de ejecución usando el comando time.
+Requisitos
+
+    Compilador g++ con soporte para OpenMP.
+
+    Bash para ejecutar el menú interactivo y medir tiempo de ejecución correctamente.
