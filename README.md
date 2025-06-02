@@ -1,1 +1,0 @@
-# Taller_OpenMP_Poisson
