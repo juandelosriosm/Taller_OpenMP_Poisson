@@ -1,8 +1,11 @@
 CXX = g++
-CXXFLAGS = -fopenmp -O3
+CXXFLAGS_COMMON = -O3
+CXXFLAGS_OMP = -fopenmp -O3
+
 SRCDIR = src
 BINDIR = bin
-PROGS = poisson_serial
+
+PROGS = poisson_serial poisson_parallel
 
 .PHONY: all clean run dirs
 
@@ -11,8 +14,11 @@ all: dirs $(addprefix $(BINDIR)/, $(PROGS))
 dirs:
 	mkdir -p $(BINDIR)
 
-$(BINDIR)/%: $(SRCDIR)/%.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $<
+$(BINDIR)/poisson_serial: $(SRCDIR)/poisson_serial.cpp
+	$(CXX) $(CXXFLAGS_COMMON) -o $@ $<
+
+$(BINDIR)/poisson_parallel: $(SRCDIR)/poisson_parallel.cpp
+	$(CXX) $(CXXFLAGS_OMP) -o $@ $<
 
 clean:
 	rm -f $(BINDIR)/* *.o *.png *.dat *.csv
