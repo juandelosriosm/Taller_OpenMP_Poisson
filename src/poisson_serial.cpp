@@ -31,9 +31,9 @@ double boundary_condition1(double x, double y) {
 
 // Condiciones de frontera para el caso 2
 double boundary_condition2(double x, double y) {
-    if (std::abs(y - y_ini) < 1e-12) return 1.0;            // y = 0
-    else if (std::abs(x - x_ini) < 1e-12) return 1.0;       // x = 0
-    else if (std::abs(y - y_fin) < 1e-12) return std::exp(x); // y = 1
+    if (std::abs(y - y_ini) < 1e-12) return 1.0;               // y = 0
+    else if (std::abs(x - x_ini) < 1e-12) return 1.0;          // x = 0
+    else if (std::abs(y - y_fin) < 1e-12) return std::exp(x);  // y = 1
     else if (std::abs(x - x_fin) < 1e-12) return std::exp(2.0 * y); // x = 2
     return 0.0;
 }
@@ -82,39 +82,61 @@ void solve_poisson(std::vector<std::vector<double>> &V, int M, int N, double h, 
     }
 }
 
-void export_to_file(const std::vector<std::vector<double>> &V, int M, int N, double h, double k, const std::string &filename) {
+std::string export_to_csv(const std::vector<std::vector<double>> &V, int M, int N, double h, double k, int case_num) {
+    std::string filename = "poisson_" + std::to_string(M) + "x" + std::to_string(N) + "_case" + std::to_string(case_num) + ".csv";
     std::ofstream file(filename);
+
+    file << "x,y,V\n";
     for (int j = 0; j <= N; ++j) {
         double y = y_ini + j * k;
         for (int i = 0; i <= M; ++i) {
             double x = x_ini + i * h;
-            file << x << " " << y << " " << V[i][j] << "\n";
+            file << x << "," << y << "," << V[i][j] << "\n";
         }
-        file << "\n";
     }
-    file.close();
-}
 
-void plot_with_gnuplot(const std::string &datafile, const std::string &outputfile = "poisson_plot.png") {
-    std::string gp_script = 
-        "set terminal pngcairo size 800,600 enhanced font 'Verdana,10'\n"
-        "set output '" + outputfile + "'\n"
-        "set xlabel 'x'\n"
-        "set ylabel 'y'\n"
-        "set zlabel 'V(x,y)'\n"
-        "set grid\n"
-        "set hidden3d\n"
-        "set style data lines\n"
-        "set ticslevel 0\n"
-        "splot '" + datafile + "' with lines notitle\n"
-        "exit\n";
+    file.close();
+    std::cout << "Archivo CSV generado: " << filename << std::endl;
+    return filename;
+}
+void plot_with_gnuplot(const std::string &csvfile, const std::string &outputfile, int M, int N) {
+    std::string gp_script;
+    if (M > 200 && N > 200) {
+        gp_script =
+            "set datafile separator ','\n"
+            "set terminal pngcairo size 800,600 enhanced font 'Verdana,10'\n"
+            "set output '" + outputfile + "'\n"
+            "set xlabel 'x'\n"
+            "set ylabel 'y'\n"
+            "set zlabel 'V(x,y)'\n"
+            "set grid\n"
+            "unset key\n"
+            "set pm3d at s\n"
+            "set view 60,30\n"
+            "splot '" + csvfile + "' using 1:2:3 with pm3d\n";
+    } else {
+        gp_script =
+            "set datafile separator ','\n"
+            "set terminal pngcairo size 800,600 enhanced font 'Verdana,10'\n"
+            "set output '" + outputfile + "'\n"
+            "set xlabel 'x'\n"
+            "set ylabel 'y'\n"
+            "set zlabel 'V(x,y)'\n"
+            "set grid\n"
+            "set hidden3d\n"
+            "set style data points\n"
+            "set ticslevel 0\n"
+            "splot '" + csvfile + "' using 1:2:3 with points notitle\n";
+    }
 
     std::ofstream gpfile("plot_script.gp");
     gpfile << gp_script;
     gpfile.close();
+
     system("gnuplot plot_script.gp");
     std::remove("plot_script.gp");
 }
+
 
 int main() {
     std::cout << "Elige el caso a simular:\n";
@@ -151,13 +173,13 @@ int main() {
     std::cout << "Convergió en " << iterations << " iteraciones\n";
     std::cout << "Tiempo de cálculo: " << elapsed.count() << " segundos\n";
 
-    std::string datafile = "datos_poisson.dat";
-    std::string outputfile = (case_selector == 1) ? "poisson_case1.png" : "poisson_case2.png";
+    std::string csv_file = export_to_csv(V, M, N, h, k, case_selector);
+    std::string plot_file = "poisson_" + std::to_string(M) + "x" + std::to_string(N) + "_case" + std::to_string(case_selector) + ".png";
 
-    export_to_file(V, M, N, h, k, datafile);
-    plot_with_gnuplot(datafile, outputfile);
+    plot_with_gnuplot(csv_file, plot_file, M, N);
 
-    std::cout << "Gráfica generada en: " << outputfile << std::endl;
+
+    std::cout << "Gráfica generada en: " << plot_file << std::endl;
 
     return 0;
 }
