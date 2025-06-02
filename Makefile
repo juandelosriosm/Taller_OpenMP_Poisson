@@ -5,7 +5,7 @@ CXXFLAGS_OMP = -fopenmp -O3
 SRCDIR = src
 BINDIR = bin
 
-PROGS = poisson_serial poisson_parallel
+PROGS = poisson_serial poisson_parallel poisson_collapse
 
 .PHONY: all clean run dirs
 
@@ -18,6 +18,9 @@ $(BINDIR)/poisson_serial: $(SRCDIR)/poisson_serial.cpp
 	$(CXX) $(CXXFLAGS_COMMON) -o $@ $<
 
 $(BINDIR)/poisson_parallel: $(SRCDIR)/poisson_parallel.cpp
+	$(CXX) $(CXXFLAGS_OMP) -o $@ $<
+
+$(BINDIR)/poisson_collapse: $(SRCDIR)/poisson_collapse.cpp
 	$(CXX) $(CXXFLAGS_OMP) -o $@ $<
 
 clean:
