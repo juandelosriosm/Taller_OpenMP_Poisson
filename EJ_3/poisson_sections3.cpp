@@ -180,7 +180,7 @@ int main() {
     std::cout << "Tiempo total (incluye solve_poisson): " << elapsed_total.count() << " segundos\n";
 
     std::string datafile = "datos_poisson.dat";
-    std::string outputfile = "poisson_parallel_sections.png";
+    std::string outputfile = "poisson_sections3.png";
 
     export_to_file(V, M, N, h, k, datafile);
     plot_with_gnuplot(datafile, outputfile);

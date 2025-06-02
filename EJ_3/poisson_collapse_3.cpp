@@ -143,7 +143,7 @@ int main() {
     std::cout << "Tiempo de cálculo: " << elapsed.count() << " segundos\n";
 
     std::string datafile = "datos_poisson.dat";
-    std::string outputfile = "poisson_parallel_collapse3.png";
+    std::string outputfile = "poisson_collapse3.png";
 
     export_to_file(V, M, N, h, k, datafile);
     plot_with_gnuplot(datafile, outputfile);
