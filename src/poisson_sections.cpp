@@ -12,22 +12,18 @@ double y_ini, y_fin;
 // ------------------------------------------------
 // Fuentes para los casos
 // ------------------------------------------------
-// Caso 1: ∇²V = (x² + y²)e^{x y} (Ejemplo 1)
 double source_term1(double x, double y) {
     return (x * x + y * y) * std::exp(x * y);
 }
 
-// Caso 2: ∇²V = 0 (Laplace, Ejemplo 2)
 double source_term2(double x, double y) {
     return 0.0;
 }
 
-// Caso 3: ∇²V = 4 (Ejemplo 3)
 double source_term3(double x, double y) {
     return 4.0;
 }
 
-// Caso 4: ∇²V = x/y + y/x (Ejemplo 4)
 double source_term4(double x, double y) {
     return x / y + y / x;
 }
@@ -35,7 +31,6 @@ double source_term4(double x, double y) {
 // ------------------------------------------------
 // Condiciones de frontera para los casos
 // ------------------------------------------------
-// Caso 1: ∇²V = (x² + y²)e^{x y}
 double boundary_condition1(double x, double y) {
     const double EPS = 1e-12;
     if (std::abs(y - y_ini) < EPS) return 1.0;
@@ -45,7 +40,6 @@ double boundary_condition1(double x, double y) {
     return 0.0;
 }
 
-// Caso 2: ∇²V = 0
 double boundary_condition2(double x, double y) {
     const double EPS = 1e-12;
     if (std::abs(x - x_ini) < EPS) return std::log(y*y + 1.0);
@@ -55,7 +49,6 @@ double boundary_condition2(double x, double y) {
     return 0.0;
 }
 
-// Caso 3: ∇²V = 4
 double boundary_condition3(double x, double y) {
     const double EPS = 1e-12;
     if (std::abs(x - x_ini) < EPS) return (1.0 - y) * (1.0 - y);
@@ -65,7 +58,6 @@ double boundary_condition3(double x, double y) {
     return 0.0;
 }
 
-// Caso 4: ∇²V = x/y + y/x
 double boundary_condition4(double x, double y) {
     const double EPS = 1e-12;
     if (std::abs(x - x_ini) < EPS) return y * std::log(y);
@@ -76,7 +68,7 @@ double boundary_condition4(double x, double y) {
 }
 
 // ------------------------------------------------
-// Inicialización de la grilla y condiciones de frontera
+// Inicialización
 // ------------------------------------------------
 void initialize_grid(int M, int N, std::vector<std::vector<double>> &V, double &h, double &k,
                      double (*boundary)(double, double)) {
@@ -93,7 +85,6 @@ void initialize_grid(int M, int N, std::vector<std::vector<double>> &V, double &
     }
 }
 
-// Precalcula la fuente
 void poisson_source(int M, int N, std::vector<std::vector<double>> &F, double h, double k,
                     double (*source)(double, double)) {
     F.resize(M + 1, std::vector<double>(N + 1, 0.0));
@@ -106,7 +97,9 @@ void poisson_source(int M, int N, std::vector<std::vector<double>> &F, double h,
     }
 }
 
-// Resolución de Poisson utilizando paralelización con OpenMP
+// ------------------------------------------------
+// Solución de Poisson con límite de 15000 iteraciones
+// ------------------------------------------------
 void solve_poisson(std::vector<std::vector<double>> &V, const std::vector<std::vector<double>> &F,
                    int M, int N, double h, double k, double tol, int &iterations) {
     double delta = 1.0;
@@ -117,7 +110,7 @@ void solve_poisson(std::vector<std::vector<double>> &V, const std::vector<std::v
     double k2 = k * k;
     double denom = 2.0 * (h2 + k2);
 
-    while (delta > tol) {
+    while (delta > tol && iterations < 15000) {
         delta = 0.0;
         V_old = V;
 
@@ -140,6 +133,9 @@ void solve_poisson(std::vector<std::vector<double>> &V, const std::vector<std::v
     }
 }
 
+// ------------------------------------------------
+// Exportar datos y graficar
+// ------------------------------------------------
 void export_to_file(const std::vector<std::vector<double>> &V, int M, int N, double h, double k, const std::string &filename) {
     std::ofstream file(filename);
     if (!file.is_open()) {
@@ -181,6 +177,9 @@ void plot_with_gnuplot(const std::string &datafile, const std::string &outputfil
     std::remove("plot_script.gp");
 }
 
+// ------------------------------------------------
+// Función principal
+// ------------------------------------------------
 int main() {
     int M, N, num_threads, option;
 
@@ -199,7 +198,7 @@ int main() {
     std::cout << "Opción (1, 2, 3 o 4): ";
     std::cin >> option;
 
-    if (M <= 0 || N <= 0 || num_threads < 1 || (option != 1 && option != 2 && option != 3 && option != 4)) {
+    if (M <= 0 || N <= 0 || num_threads < 1 || (option < 1 || option > 4)) {
         std::cerr << "Parámetros inválidos.\n";
         return 1;
     }
@@ -268,7 +267,7 @@ int main() {
     std::cout << "Convergió en " << iterations << " iteraciones\n";
     std::cout << "Tiempo de cálculo: " << elapsed.count() << " segundos\n";
 
-    std::string option_str = (option == 1) ? "constante" : "variable";
+    std::string option_str = "caso_" + std::to_string(option);
     std::string datafile = "poisson_sections_" + std::to_string(M) + "x" + std::to_string(N) +
                            "_threads" + std::to_string(num_threads) + "_" + option_str + ".csv";
     std::string outputfile = "poisson_sections_" + std::to_string(M) + "x" + std::to_string(N) +
@@ -281,3 +280,4 @@ int main() {
 
     return 0;
 }
+
