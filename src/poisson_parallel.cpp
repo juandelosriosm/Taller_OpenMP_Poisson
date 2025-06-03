@@ -20,38 +20,14 @@ int case_selector = 1;  // Elegir de 1 a 4
 // ------------------------------------------------
 double source_term(double x, double y) {
     switch (case_selector) {
-        //---------------------------------------------
-        // Caso 1:  ∇²V = (x² + y²) e^{x y}
-        // Dominio: x ∈ [0,2], y ∈ [0,1]
-        // Solución analítica: V(x,y) = e^{x y}
-        //---------------------------------------------
         case 1:
             return (x*x + y*y) * std::exp(x * y);
-
-        //---------------------------------------------
-        // Caso 2:  ∇²V = 0  (Laplace)
-        // Dominio: x ∈ [1,2], y ∈ [0,1]
-        // Solución analítica: V(x,y) = ln(x² + y²)
-        //---------------------------------------------
         case 2:
             return 0.0;
-
-        //---------------------------------------------
-        // Caso 3:  ∇²V = 4
-        // Dominio: x ∈ [1,2], y ∈ [0,2]
-        // Solución analítica: V(x,y) = (x - y)²
-        //---------------------------------------------
         case 3:
             return 4.0;
-
-        //---------------------------------------------
-        // Caso 4:  ∇²V = x/y + y/x
-        // Dominio: x ∈ [1,2], y ∈ [1,2]
-        // Solución analítica: V(x,y) = x·y·ln(x·y)
-        //---------------------------------------------
         case 4:
             return x / y + y / x;
-
         default:
             return 0.0;
     }
@@ -64,96 +40,32 @@ static constexpr double EPS = 1e-12;
 
 double boundary_condition(double x, double y) {
     switch (case_selector) {
-        //=============================================
-        // Caso 1:  ∇²V = (x² + y²)e^{x y}
-        //   V(0,y) = 1
-        //   V(2,y) = e^{2 y}
-        //   V(x,0) = 1
-        //   V(x,1) = e^{x}
-        //   Dominio: x ∈ [0,2], y ∈ [0,1]
-        //=============================================
         case 1:
-            if (std::abs(x - x_ini) < EPS) {          // x = 0
-                return 1.0;
-            }
-            if (std::abs(x - x_fin) < EPS) {          // x = 2
-                return std::exp(2.0 * y);
-            }
-            if (std::abs(y - y_ini) < EPS) {          // y = 0
-                return 1.0;
-            }
-            if (std::abs(y - y_fin) < EPS) {          // y = 1
-                return std::exp(x);
-            }
-            return 0.0;  // Interior
+            if (std::abs(x - x_ini) < EPS)   return 1.0;
+            if (std::abs(x - x_fin) < EPS)   return std::exp(2.0 * y);
+            if (std::abs(y - y_ini) < EPS)   return 1.0;
+            if (std::abs(y - y_fin) < EPS)   return std::exp(x);
+            return 0.0;
 
-        //=============================================
-        // Caso 2:  ∇²V = 0  (Laplace)
-        //   V(1,y) = ln(y² + 1)
-        //   V(2,y) = ln(y² + 4)
-        //   V(x,0) = 2 ln(x)
-        //   V(x,1) = ln(x² + 1)
-        //   Dominio: x ∈ [1,2], y ∈ [0,1]
-        //=============================================
         case 2:
-            if (std::abs(x - x_ini) < EPS) {          // x = 1
-                return std::log(y*y + 1.0);
-            }
-            if (std::abs(x - x_fin) < EPS) {          // x = 2
-                return std::log(y*y + 4.0);
-            }
-            if (std::abs(y - y_ini) < EPS) {          // y = 0
-                return 2.0 * std::log(x);
-            }
-            if (std::abs(y - y_fin) < EPS) {          // y = 1
-                return std::log(x*x + 1.0);
-            }
+            if (std::abs(x - x_ini) < EPS)   return std::log(y*y + 1.0);
+            if (std::abs(x - x_fin) < EPS)   return std::log(y*y + 4.0);
+            if (std::abs(y - y_ini) < EPS)   return 2.0 * std::log(x);
+            if (std::abs(y - y_fin) < EPS)   return std::log(x*x + 1.0);
             return 0.0;
 
-        //=============================================
-        // Caso 3:  ∇²V = 4
-        //   V(1,y) = (1 - y)²
-        //   V(2,y) = (2 - y)²
-        //   V(x,0) = x²
-        //   V(x,2) = (x - 2)²
-        //   Dominio: x ∈ [1,2], y ∈ [0,2]
-        //=============================================
         case 3:
-            if (std::abs(x - x_ini) < EPS) {          // x = 1
-                return (1.0 - y) * (1.0 - y);
-            }
-            if (std::abs(x - x_fin) < EPS) {          // x = 2
-                return (2.0 - y) * (2.0 - y);
-            }
-            if (std::abs(y - y_ini) < EPS) {          // y = 0
-                return x * x;
-            }
-            if (std::abs(y - y_fin) < EPS) {          // y = 2
-                return (x - 2.0) * (x - 2.0);
-            }
+            if (std::abs(x - x_ini) < EPS)   return (1.0 - y) * (1.0 - y);
+            if (std::abs(x - x_fin) < EPS)   return (2.0 - y) * (2.0 - y);
+            if (std::abs(y - y_ini) < EPS)   return x * x;
+            if (std::abs(y - y_fin) < EPS)   return (x - 2.0) * (x - 2.0);
             return 0.0;
 
-        //=============================================
-        // Caso 4:  ∇²V = x/y + y/x
-        //   V(1,y) = y ln(y)
-        //   V(2,y) = 2 y ln(2 y)
-        //   V(x,1) = x ln(x)
-        //   V(x,2) = 2 x ln(2 x)
-        //   Dominio: x ∈ [1,2], y ∈ [1,2]
-        //=============================================
         case 4:
-            if (std::abs(x - x_ini) < EPS) {          // x = 1
-                return y * std::log(y);
-            }
-            if (std::abs(x - x_fin) < EPS) {          // x = 2
-                return 2.0 * y * std::log(2.0 * y);
-            }
-            if (std::abs(y - y_ini) < EPS) {          // y = 1
-                return x * std::log(x);
-            }
-            if (std::abs(y - y_fin) < EPS) {          // y = 2
-                return 2.0 * x * std::log(2.0 * x);
-            }
+            if (std::abs(x - x_ini) < EPS)   return y * std::log(y);
+            if (std::abs(x - x_fin) < EPS)   return 2.0 * y * std::log(2.0 * y);
+            if (std::abs(y - y_ini) < EPS)   return x * std::log(x);
+            if (std::abs(y - y_fin) < EPS)   return 2.0 * x * std::log(2.0 * x);
             return 0.0;
 
         default:
@@ -191,14 +103,12 @@ void solve_poisson(std::vector<std::vector<double>> &V,
                    double /*tol*/,    // ahora ignoramos la tolerancia
                    int &iterations)
 {
-    // Copia inicial para referencia
     std::vector<std::vector<double>> V_old = V;
 
     for (int iter = 0; iter < 15000; ++iter) {
-        V_old = V;  // Guardamos el estado anterior
+        V_old = V;
         double delta = 0.0;
 
-        // Paralelizamos el bucle sobre i usando OpenMP
         #pragma omp parallel for reduction(max:delta)
         for (int i = 1; i < M; ++i) {
             for (int j = 1; j < N; ++j) {
@@ -215,21 +125,13 @@ void solve_poisson(std::vector<std::vector<double>> &V,
                 double diff = std::fabs(V_new - V_old[i][j]);
 
                 V[i][j] = V_new;
-
                 if (diff > delta) {
                     delta = diff;
                 }
             }
         }
-
-        // (Opcional) Pueden imprimir delta cada cierto número de iteraciones:
-        // if (iter % 1000 == 0) {
-        //     #pragma omp single
-        //     std::cout << "Iteración " << iter << ", delta = " << delta << "\n";
-        // }
     }
 
-    // Al finalizar el bucle, indicamos que hicimos 15000 iteraciones
     iterations = 15000;
 }
 
@@ -241,9 +143,11 @@ std::string export_to_csv(const std::vector<std::vector<double>> &V,
                           double h, double k,
                           int case_num)
 {
-    std::string filename = "poisson_" + std::to_string(M) + "x" +
-                           std::to_string(N) + "_case" +
-                           std::to_string(case_num) + ".csv";
+    // Nombre solicitado: poisson_parallel_caso_<case_num>_<MxN>.csv
+    std::string filename = "poisson_parallel_caso_" +
+                           std::to_string(case_num) + "_" +
+                           std::to_string(M) + "x" +
+                           std::to_string(N) + ".csv";
     std::ofstream file(filename);
 
     file << "x,y,V\n";
@@ -268,7 +172,6 @@ void plot_with_gnuplot(const std::string &csvfile,
 {
     std::string gp_script;
     if (M > 200 && N > 200) {
-        // Muchísimos puntos → usar pm3d para superficie
         gp_script =
             "set datafile separator ','\n"
             "set terminal pngcairo size 800,600 enhanced font 'Verdana,10'\n"
@@ -282,7 +185,6 @@ void plot_with_gnuplot(const std::string &csvfile,
             "set view 60,30\n"
             "splot '" + csvfile + "' using 1:2:3 with pm3d\n";
     } else {
-        // Pocos-moderados puntos → graficar con “points”
         gp_script =
             "set datafile separator ','\n"
             "set terminal pngcairo size 800,600 enhanced font 'Verdana,10'\n"
@@ -320,26 +222,19 @@ int main() {
     std::cout << "Ingresa el número de caso [1-4]: ";
     std::cin >> case_selector;
 
-    // ----------------------------
-    // Definir dominio (x_ini, x_fin, y_ini, y_fin) según el caso
-    // ----------------------------
     if (case_selector == 1) {
-        // Caso 1: x ∈ [0,2], y ∈ [0,1]
         x_ini = 0.0;  x_fin = 2.0;
         y_ini = 0.0;  y_fin = 1.0;
     }
     else if (case_selector == 2) {
-        // Caso 2: x ∈ [1,2], y ∈ [0,1]
         x_ini = 1.0;  x_fin = 2.0;
         y_ini = 0.0;  y_fin = 1.0;
     }
     else if (case_selector == 3) {
-        // Caso 3: x ∈ [1,2], y ∈ [0,2]
         x_ini = 1.0;  x_fin = 2.0;
         y_ini = 0.0;  y_fin = 2.0;
     }
     else if (case_selector == 4) {
-        // Caso 4: x ∈ [1,2], y ∈ [1,2]
         x_ini = 1.0;  x_fin = 2.0;
         y_ini = 1.0;  y_fin = 2.0;
     }
@@ -348,48 +243,35 @@ int main() {
         return 1;
     }
 
-    // ----------------------------
-    // Pedir número de divisiones
-    // ----------------------------
     std::cout << "Ingresa el número de divisiones M (en x): ";
     int M; std::cin >> M;
     std::cout << "Ingresa el número de divisiones N (en y): ";
     int N; std::cin >> N;
 
-    // ----------------------------
-    // Pedir número de hilos a usar
-    // ----------------------------
     std::cout << "Ingresa el número de hilos a utilizar: ";
     int num_threads;
     std::cin >> num_threads;
     omp_set_num_threads(num_threads);
 
-    // ----------------------------
-    // Preparar la malla y condiciones de frontera
-    // ----------------------------
     double h, k;
     std::vector<std::vector<double>> V;
     initialize_grid(M, N, V, h, k);
 
-    // ----------------------------
-    // Resolver iterativamente Poisson/Laplace (ahora con bucle fijo 15000)
-    // ----------------------------
     int iterations = 0;
     auto t_start = std::chrono::high_resolution_clock::now();
-    solve_poisson(V, M, N, h, k, 1e-6, iterations);  // tol ya no se usa internamente
+    solve_poisson(V, M, N, h, k, 1e-6, iterations);
     auto t_end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double> elapsed = t_end - t_start;
     std::cout << "Iteraciones realizadas: " << iterations << "\n";
     std::cout << "Tiempo de cálculo: " << elapsed.count() << " segundos.\n";
 
-    // ----------------------------
-    // Exportar resultados a CSV y graficar con gnuplot
-    // ----------------------------
+    // Ahora los archivos se guardan como poisson_parallel_caso_<case>_<MxN>.csv/.png
     std::string csv_file = export_to_csv(V, M, N, h, k, case_selector);
-    std::string plot_file = "poisson_" + std::to_string(M) + "x" +
-                            std::to_string(N) + "_case" +
-                            std::to_string(case_selector) + ".png";
+    std::string plot_file = "poisson_parallel_caso_" +
+                            std::to_string(case_selector) + "_" +
+                            std::to_string(M) + "x" +
+                            std::to_string(N) + ".png";
 
     plot_with_gnuplot(csv_file, plot_file, M, N);
     std::cout << "Gráfica generada en: " << plot_file << "\n\n";
