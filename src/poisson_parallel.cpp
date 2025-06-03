@@ -4,135 +4,167 @@
 #include <fstream>
 #include <cstdlib>
 #include <chrono>
-#include <omp.h>
-
-double x_ini, x_fin;
-double y_ini, y_fin;
+#include <string>
+#include <omp.h>  // Para OpenMP
 
 // ------------------------------------------------
-// Fuentes originales para los primeros dos casos
+// Declaración de variables globales para el dominio
 // ------------------------------------------------
-// Primera función fuente: ∇²V = 4  (Ejemplo 3 de la tabla)
-double source_term1(double x, double y) {
-    return 4.0;
-}
+double x_ini = 0.0, x_fin = 2.0;
+double y_ini = 0.0, y_fin = 1.0;
 
-// Segunda función fuente: ∇²V = (x² + y²) e^{x y}  (Ejemplo 1 de la tabla)
-double source_term2(double x, double y) {
-    return (x * x + y * y) * std::exp(x * y);
-}
+int case_selector = 1;  // Elegir de 1 a 4
 
 // ------------------------------------------------
-// Nuevas funciones fuente para los casos 3 y 4
+// Función fuente generalizada: ∇²V = f(x,y)
 // ------------------------------------------------
-// Tercera función fuente: ∇²V = 0  (Laplace, Ejemplo 2)
-double source_term3(double x, double y) {
-    return 0.0;
-}
+double source_term(double x, double y) {
+    switch (case_selector) {
+        //---------------------------------------------
+        // Caso 1:  ∇²V = (x² + y²) e^{x y}
+        // Dominio: x ∈ [0,2], y ∈ [0,1]
+        // Solución analítica: V(x,y) = e^{x y}
+        //---------------------------------------------
+        case 1:
+            return (x*x + y*y) * std::exp(x * y);
 
-// Cuarta función fuente: ∇²V = x/y + y/x  (Ejemplo 4)
-double source_term4(double x, double y) {
-    return x / y + y / x;
-}
+        //---------------------------------------------
+        // Caso 2:  ∇²V = 0  (Laplace)
+        // Dominio: x ∈ [1,2], y ∈ [0,1]
+        // Solución analítica: V(x,y) = ln(x² + y²)
+        //---------------------------------------------
+        case 2:
+            return 0.0;
 
-// ------------------------------------------------
-// Condiciones de frontera para los primeros dos casos
-// ------------------------------------------------
-// Caso 1 (Ejemplo 3): ∇²V = 4
-//   V(1,y) = (1 - y)²
-//   V(2,y) = (2 - y)²
-//   V(x,0) = x²
-//   V(x,2) = (x - 2)²
-double boundary_condition1(double x, double y) {
-    const double EPS = 1e-12;
-    if (std::abs(x - x_ini) < EPS)      // x = x_ini = 1
-        return (1.0 - y) * (1.0 - y);
-    if (std::abs(x - x_fin) < EPS)      // x = x_fin = 2
-        return (2.0 - y) * (2.0 - y);
-    if (std::abs(y - y_ini) < EPS)      // y = y_ini = 0
-        return x * x;
-    if (std::abs(y - y_fin) < EPS)      // y = y_fin = 2
-        return (x - 2.0) * (x - 2.0);
-    return 0.0;
-}
+        //---------------------------------------------
+        // Caso 3:  ∇²V = 4
+        // Dominio: x ∈ [1,2], y ∈ [0,2]
+        // Solución analítica: V(x,y) = (x - y)²
+        //---------------------------------------------
+        case 3:
+            return 4.0;
 
-// Caso 2 (Ejemplo 1): ∇²V = (x² + y²)e^{x y}
- // V(0,y) = 1
- // V(2,y) = e^{2y}
- // V(x,0) = 1
- // V(x,1) = e^{x}
-double boundary_condition2(double x, double y) {
-    const double EPS = 1e-12;
-    // y = 0
-    if (std::abs(y - y_ini) < EPS)
-        return 1.0;
-    // x = 0
-    else if (std::abs(x - x_ini) < EPS)
-        return 1.0;
-    // y = 1
-    else if (std::abs(y - y_fin) < EPS)
-        return std::exp(x);
-    // x = 2
-    else if (std::abs(x - x_fin) < EPS)
-        return std::exp(2.0 * y);
-    return 0.0;
+        //---------------------------------------------
+        // Caso 4:  ∇²V = x/y + y/x
+        // Dominio: x ∈ [1,2], y ∈ [1,2]
+        // Solución analítica: V(x,y) = x·y·ln(x·y)
+        //---------------------------------------------
+        case 4:
+            return x / y + y / x;
+
+        default:
+            return 0.0;
+    }
 }
 
 // ------------------------------------------------
-// Nuevas condiciones de frontera para los casos 3 y 4
+// Condiciones de frontera unificadas para cada caso
 // ------------------------------------------------
-// Caso 3 (Ejemplo 2): ∇²V = 0
-//   V(1,y) = ln(y² + 1)
-//   V(2,y) = ln(y² + 4)
-//   V(x,0) = 2 ln(x)
-//   V(x,1) = ln(x² + 4)
-double boundary_condition3(double x, double y) {
-    const double EPS = 1e-12;
-    // x = 1
-    if (std::abs(x - x_ini) < EPS)
-        return std::log(y*y + 1.0);
-    // x = 2
-    if (std::abs(x - x_fin) < EPS)
-        return std::log(y*y + 4.0);
-    // y = 0
-    if (std::abs(y - y_ini) < EPS)
-        return 2.0 * std::log(x);
-    // y = 1
-    if (std::abs(y - y_fin) < EPS)
-        return std::log(x*x + 4.0);
-    return 0.0;
+static constexpr double EPS = 1e-12;
+
+double boundary_condition(double x, double y) {
+    switch (case_selector) {
+        //=============================================
+        // Caso 1:  ∇²V = (x² + y²)e^{x y}
+        //   V(0,y) = 1
+        //   V(2,y) = e^{2 y}
+        //   V(x,0) = 1
+        //   V(x,1) = e^{x}
+        //   Dominio: x ∈ [0,2], y ∈ [0,1]
+        //=============================================
+        case 1:
+            if (std::abs(x - x_ini) < EPS) {          // x = 0
+                return 1.0;
+            }
+            if (std::abs(x - x_fin) < EPS) {          // x = 2
+                return std::exp(2.0 * y);
+            }
+            if (std::abs(y - y_ini) < EPS) {          // y = 0
+                return 1.0;
+            }
+            if (std::abs(y - y_fin) < EPS) {          // y = 1
+                return std::exp(x);
+            }
+            return 0.0;  // Interior
+
+        //=============================================
+        // Caso 2:  ∇²V = 0  (Laplace)
+        //   V(1,y) = ln(y² + 1)
+        //   V(2,y) = ln(y² + 4)
+        //   V(x,0) = 2 ln(x)
+        //   V(x,1) = ln(x² + 1)
+        //   Dominio: x ∈ [1,2], y ∈ [0,1]
+        //=============================================
+        case 2:
+            if (std::abs(x - x_ini) < EPS) {          // x = 1
+                return std::log(y*y + 1.0);
+            }
+            if (std::abs(x - x_fin) < EPS) {          // x = 2
+                return std::log(y*y + 4.0);
+            }
+            if (std::abs(y - y_ini) < EPS) {          // y = 0
+                return 2.0 * std::log(x);
+            }
+            if (std::abs(y - y_fin) < EPS) {          // y = 1
+                return std::log(x*x + 1.0);
+            }
+            return 0.0;
+
+        //=============================================
+        // Caso 3:  ∇²V = 4
+        //   V(1,y) = (1 - y)²
+        //   V(2,y) = (2 - y)²
+        //   V(x,0) = x²
+        //   V(x,2) = (x - 2)²
+        //   Dominio: x ∈ [1,2], y ∈ [0,2]
+        //=============================================
+        case 3:
+            if (std::abs(x - x_ini) < EPS) {          // x = 1
+                return (1.0 - y) * (1.0 - y);
+            }
+            if (std::abs(x - x_fin) < EPS) {          // x = 2
+                return (2.0 - y) * (2.0 - y);
+            }
+            if (std::abs(y - y_ini) < EPS) {          // y = 0
+                return x * x;
+            }
+            if (std::abs(y - y_fin) < EPS) {          // y = 2
+                return (x - 2.0) * (x - 2.0);
+            }
+            return 0.0;
+
+        //=============================================
+        // Caso 4:  ∇²V = x/y + y/x
+        //   V(1,y) = y ln(y)
+        //   V(2,y) = 2 y ln(2 y)
+        //   V(x,1) = x ln(x)
+        //   V(x,2) = 2 x ln(2 x)
+        //   Dominio: x ∈ [1,2], y ∈ [1,2]
+        //=============================================
+        case 4:
+            if (std::abs(x - x_ini) < EPS) {          // x = 1
+                return y * std::log(y);
+            }
+            if (std::abs(x - x_fin) < EPS) {          // x = 2
+                return 2.0 * y * std::log(2.0 * y);
+            }
+            if (std::abs(y - y_ini) < EPS) {          // y = 1
+                return x * std::log(x);
+            }
+            if (std::abs(y - y_fin) < EPS) {          // y = 2
+                return 2.0 * x * std::log(2.0 * x);
+            }
+            return 0.0;
+
+        default:
+            return 0.0;
+    }
 }
 
-// Caso 4 (Ejemplo 4): ∇²V = x/y + y/x
-//   V(1,y) = y ln(y)
-//   V(2,y) = 2 y ln(2 y)
-//   V(x,1) = x ln(x)
-//   V(x,2) = x ln(4 x)
-double boundary_condition4(double x, double y) {
-    const double EPS = 1e-12;
-    // x = 1
-    if (std::abs(x - x_ini) < EPS)
-        return y * std::log(y);
-    // x = 2
-    if (std::abs(x - x_fin) < EPS)
-        return 2.0 * y * std::log(2.0 * y);
-    // y = 1
-    if (std::abs(y - y_ini) < EPS)
-        return x * std::log(x);
-    // y = 2
-    if (std::abs(y - y_fin) < EPS)
-        return x * std::log(4.0 * x);
-    return 0.0;
-}
-
 // ------------------------------------------------
-// Inicialización de la grilla y condiciones de frontera
+// Inicialización de la malla (grid) y condiciones de frontera
 // ------------------------------------------------
-void initialize_grid(int M, int N,
-                     std::vector<std::vector<double>> &V,
-                     double &h, double &k,
-                     double (*boundary)(double, double))
-{
+void initialize_grid(int M, int N, std::vector<std::vector<double>> &V, double &h, double &k) {
     h = (x_fin - x_ini) / M;
     k = (y_fin - y_ini) / N;
     V.resize(M + 1, std::vector<double>(N + 1, 0.0));
@@ -141,71 +173,79 @@ void initialize_grid(int M, int N,
         double x = x_ini + i * h;
         for (int j = 0; j <= N; ++j) {
             double y = y_ini + j * k;
-            // Si está en la frontera, aplicamos la condición:
             if (i == 0 || i == M || j == 0 || j == N) {
-                V[i][j] = boundary(x, y);
+                V[i][j] = boundary_condition(x, y);
             }
         }
     }
 }
 
 // ------------------------------------------------
-// Solución iterativa de ∇²V = f(x,y) (paralelo con #pragma omp parallel for)
+// Solución iterativa de Poisson/Laplace por diferencias finitas
+//   Modificado para iterar siempre 15000 veces.
+//   Ahora con paralelización OpenMP y cálculo de delta.
 // ------------------------------------------------
 void solve_poisson(std::vector<std::vector<double>> &V,
                    int M, int N,
                    double h, double k,
-                   int &iterations,
-                   double (*source)(double, double))
+                   double /*tol*/,    // ahora ignoramos la tolerancia
+                   int &iterations)
 {
+    // Copia inicial para referencia
     std::vector<std::vector<double>> V_old = V;
 
-    double h2 = h * h;
-    double k2 = k * k;
-    double denom = 2.0 * (h2 + k2);
-
-    // Ahora el número de iteraciones está limitado a 15000
-    while (iterations < 15000) {
+    for (int iter = 0; iter < 15000; ++iter) {
+        V_old = V;  // Guardamos el estado anterior
         double delta = 0.0;
-        V_old = V;
 
-        // Paralelización del bucle de i con reducción en delta
-        #pragma omp parallel for collapse(2) reduction(max:delta)
+        // Paralelizamos el bucle sobre i usando OpenMP
+        #pragma omp parallel for reduction(max:delta)
         for (int i = 1; i < M; ++i) {
             for (int j = 1; j < N; ++j) {
                 double x = x_ini + i * h;
                 double y = y_ini + j * k;
-                double f = source(x, y);
+                double f = source_term(x, y);
 
-                double V_new = (
-                    (V_old[i + 1][j] + V_old[i - 1][j]) * k2 +
-                    (V_old[i][j + 1] + V_old[i][j - 1]) * h2 -
-                    f * h2 * k2
-                ) / denom;
+                double numer = (V_old[i + 1][j] + V_old[i - 1][j]) * (k * k)
+                             + (V_old[i][j + 1] + V_old[i][j - 1]) * (h * h)
+                             - f * (h * h) * (k * k);
+                double denom = 2.0 * (h * h + k * k);
 
-                double diff = std::abs(V_new - V[i][j]);
-                if (diff > delta) delta = diff;
+                double V_new = numer / denom;
+                double diff = std::fabs(V_new - V_old[i][j]);
 
                 V[i][j] = V_new;
+
+                if (diff > delta) {
+                    delta = diff;
+                }
             }
         }
-        ++iterations;
+
+        // (Opcional) Pueden imprimir delta cada cierto número de iteraciones:
+        // if (iter % 1000 == 0) {
+        //     #pragma omp single
+        //     std::cout << "Iteración " << iter << ", delta = " << delta << "\n";
+        // }
     }
+
+    // Al finalizar el bucle, indicamos que hicimos 15000 iteraciones
+    iterations = 15000;
 }
 
 // ------------------------------------------------
-// Exportar datos a CSV
+// Exportar resultados a CSV para graficar
 // ------------------------------------------------
-void export_to_file(const std::vector<std::vector<double>> &V,
-                    int M, int N,
-                    double h, double k,
-                    const std::string &filename)
+std::string export_to_csv(const std::vector<std::vector<double>> &V,
+                          int M, int N,
+                          double h, double k,
+                          int case_num)
 {
+    std::string filename = "poisson_" + std::to_string(M) + "x" +
+                           std::to_string(N) + "_case" +
+                           std::to_string(case_num) + ".csv";
     std::ofstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Error al abrir el archivo para exportar datos.\n";
-        return;
-    }
+
     file << "x,y,V\n";
     for (int j = 0; j <= N; ++j) {
         double y = y_ini + j * k;
@@ -215,26 +255,47 @@ void export_to_file(const std::vector<std::vector<double>> &V,
         }
     }
     file.close();
+    std::cout << "Archivo CSV generado: " << filename << "\n";
+    return filename;
 }
 
 // ------------------------------------------------
-// Graficar con GNUplot
+// Generación de gráfica con GNUplot (3D surface o points)
 // ------------------------------------------------
-void plot_with_gnuplot(const std::string &datafile,
-                       const std::string &outputfile)
+void plot_with_gnuplot(const std::string &csvfile,
+                       const std::string &outputfile,
+                       int M, int N)
 {
-    std::string gp_script =
-        "set terminal pngcairo size 800,600 enhanced font 'Verdana,10'\n"
-        "set output '" + outputfile + "'\n"
-        "set xlabel 'x'\n"
-        "set ylabel 'y'\n"
-        "set zlabel 'V(x,y)'\n"
-        "set grid\n"
-        "set hidden3d\n"
-        "set datafile separator \",\"\n"
-        "set style data points\n"
-        "set ticslevel 0\n"
-        "splot '" + datafile + "' using 1:2:3 with points notitle\n";
+    std::string gp_script;
+    if (M > 200 && N > 200) {
+        // Muchísimos puntos → usar pm3d para superficie
+        gp_script =
+            "set datafile separator ','\n"
+            "set terminal pngcairo size 800,600 enhanced font 'Verdana,10'\n"
+            "set output '" + outputfile + "'\n"
+            "set xlabel 'x'\n"
+            "set ylabel 'y'\n"
+            "set zlabel 'V(x,y)'\n"
+            "set grid\n"
+            "unset key\n"
+            "set pm3d at s\n"
+            "set view 60,30\n"
+            "splot '" + csvfile + "' using 1:2:3 with pm3d\n";
+    } else {
+        // Pocos-moderados puntos → graficar con “points”
+        gp_script =
+            "set datafile separator ','\n"
+            "set terminal pngcairo size 800,600 enhanced font 'Verdana,10'\n"
+            "set output '" + outputfile + "'\n"
+            "set xlabel 'x'\n"
+            "set ylabel 'y'\n"
+            "set zlabel 'V(x,y)'\n"
+            "set grid\n"
+            "set hidden3d\n"
+            "set style data points\n"
+            "set ticslevel 0\n"
+            "splot '" + csvfile + "' using 1:2:3 with points notitle\n";
+    }
 
     std::ofstream gpfile("plot_script.gp");
     gpfile << gp_script;
@@ -248,136 +309,90 @@ void plot_with_gnuplot(const std::string &datafile,
 // Función principal
 // ------------------------------------------------
 int main() {
-    std::cout << "=============================================\n";
-    std::cout << "    Poisson/Laplace Paralelo (OpenMP)\n";
-    std::cout << "=============================================\n";
-    std::cout << "Este programa resuelve ∇²V = f(x,y) en 4 casos:\n\n";
-    std::cout << "  1) Caso 1 (Ejemplo 3 de la tabla): ∇²V = 4\n";
-    std::cout << "       V(1,y) = (1 - y)²,   V(2,y) = (2 - y)²,\n";
-    std::cout << "       V(x,0) = x²,         V(x,2) = (x - 2)²\n";
-    std::cout << "       Dominio: x∈[1,2], y∈[0,2]\n\n";
-
-    std::cout << "  2) Caso 2 (Ejemplo 1 de la tabla): ∇²V = (x²+y²)e^{x y}\n";
-    std::cout << "       V(0,y) = 1,         V(2,y) = e^{2y},\n";
-    std::cout << "       V(x,0) = 1,         V(x,1) = e^{x}\n";
-    std::cout << "       Dominio: x∈[0,2], y∈[0,1]\n\n";
-
-    std::cout << "  3) Caso 3 (Ejemplo 2 de la tabla): ∇²V = 0 (Laplace)\n";
-    std::cout << "       V(1,y) = ln(y²+1),  V(2,y) = ln(y²+4),\n";
-    std::cout << "       V(x,0) = 2 ln(x),   V(x,1) = ln(x²+4)\n";
-    std::cout << "       Dominio: x∈[1,2], y∈[0,1]\n\n";
-
-    std::cout << "  4) Caso 4 (Ejemplo 4 de la tabla): ∇²V = x/y + y/x\n";
-    std::cout << "       V(1,y) = y ln(y),   V(2,y) = 2 y ln(2y),\n";
-    std::cout << "       V(x,1) = x ln(x),   V(x,2) = x ln(4x)\n";
-    std::cout << "       Dominio: x∈[1,2], y∈[1,2]\n\n";
-
-    std::cout << "Ingrese número de caso [1-4]: ";
-    int case_selector;
+    std::cout << "---------------------------------------------\n";
+    std::cout << "  Simulación de Poisson/Laplace (4 ejemplos)\n";
+    std::cout << "---------------------------------------------\n";
+    std::cout << "Elige el caso a simular (1-4):\n";
+    std::cout << "  1: Caso 1: ∇²V = (x² + y²)e^{x y}    (V = e^{x y})\n";
+    std::cout << "  2: Caso 2: ∇²V = 0   (Laplace)       (V = ln(x² + y²))\n";
+    std::cout << "  3: Caso 3: ∇²V = 4                  (V = (x − y)²)\n";
+    std::cout << "  4: Caso 4: ∇²V = x/y + y/x         (V = x·y·ln(x·y))\n";
+    std::cout << "Ingresa el número de caso [1-4]: ";
     std::cin >> case_selector;
 
-    if (case_selector < 1 || case_selector > 4) {
-        std::cerr << "Opción inválida. Debe ser 1, 2, 3 o 4.\n";
+    // ----------------------------
+    // Definir dominio (x_ini, x_fin, y_ini, y_fin) según el caso
+    // ----------------------------
+    if (case_selector == 1) {
+        // Caso 1: x ∈ [0,2], y ∈ [0,1]
+        x_ini = 0.0;  x_fin = 2.0;
+        y_ini = 0.0;  y_fin = 1.0;
+    }
+    else if (case_selector == 2) {
+        // Caso 2: x ∈ [1,2], y ∈ [0,1]
+        x_ini = 1.0;  x_fin = 2.0;
+        y_ini = 0.0;  y_fin = 1.0;
+    }
+    else if (case_selector == 3) {
+        // Caso 3: x ∈ [1,2], y ∈ [0,2]
+        x_ini = 1.0;  x_fin = 2.0;
+        y_ini = 0.0;  y_fin = 2.0;
+    }
+    else if (case_selector == 4) {
+        // Caso 4: x ∈ [1,2], y ∈ [1,2]
+        x_ini = 1.0;  x_fin = 2.0;
+        y_ini = 1.0;  y_fin = 2.0;
+    }
+    else {
+        std::cerr << "Opción inválida. Debe ser un entero entre 1 y 4.\n";
         return 1;
     }
 
-    std::cout << "Ingrese número de divisiones en x (M > 0): ";
-    int M; 
-    std::cin >> M;
-    std::cout << "Ingrese número de divisiones en y (N > 0): ";
-    int N; 
-    std::cin >> N;
-    std::cout << "Ingrese número de hilos OpenMP (>= 1): ";
-    int num_threads; 
+    // ----------------------------
+    // Pedir número de divisiones
+    // ----------------------------
+    std::cout << "Ingresa el número de divisiones M (en x): ";
+    int M; std::cin >> M;
+    std::cout << "Ingresa el número de divisiones N (en y): ";
+    int N; std::cin >> N;
+
+    // ----------------------------
+    // Pedir número de hilos a usar
+    // ----------------------------
+    std::cout << "Ingresa el número de hilos a utilizar: ";
+    int num_threads;
     std::cin >> num_threads;
-
-    if (M <= 0 || N <= 0 || num_threads < 1) {
-        std::cerr << "Parámetros inválidos para M, N o número de hilos.\n";
-        return 1;
-    }
-
-    // ------------------------------------------------
-    // Seleccionar dominio y punteros a funciones
-    // ------------------------------------------------
-    double (*source_func)(double, double)   = nullptr;
-    double (*boundary_func)(double, double) = nullptr;
-    std::string label;
-
-    switch (case_selector) {
-        case 1:
-            // Caso 1: ∇²V = 4 (Ejemplo 3), dominio x∈[1,2], y∈[0,2]
-            x_ini = 1.0;  x_fin = 2.0;
-            y_ini = 0.0;  y_fin = 2.0;
-            source_func   = source_term1;
-            boundary_func = boundary_condition1;
-            label = "caso1_4const";
-            break;
-
-        case 2:
-            // Caso 2: ∇²V = (x²+y²)e^{x y} (Ejemplo 1), dominio x∈[0,2], y∈[0,1]
-            x_ini = 0.0;  x_fin = 2.0;
-            y_ini = 0.0;  y_fin = 1.0;
-            source_func   = source_term2;
-            boundary_func = boundary_condition2;
-            label = "caso2_xyexpo";
-            break;
-
-        case 3:
-            // Caso 3: ∇²V = 0 (Laplace, Ejemplo 2), dominio x∈[1,2], y∈[0,1]
-            x_ini = 1.0;  x_fin = 2.0;
-            y_ini = 0.0;  y_fin = 1.0;
-            source_func   = source_term3;
-            boundary_func = boundary_condition3;
-            label = "caso3_laplace";
-            break;
-
-        case 4:
-            // Caso 4: ∇²V = x/y + y/x (Ejemplo 4), dominio x∈[1,2], y∈[1,2]
-            x_ini = 1.0;  x_fin = 2.0;
-            y_ini = 1.0;  y_fin = 2.0;
-            source_func   = source_term4;
-            boundary_func = boundary_condition4;
-            label = "caso4_xyover";
-            break;
-    }
-
     omp_set_num_threads(num_threads);
-    std::cout << "\nResolviendo caso " << case_selector
-              << " con " << num_threads << " hilos...\n";
 
-    // ------------------------------------------------
-    // Inicializar la grilla y condiciones de frontera
-    // ------------------------------------------------
+    // ----------------------------
+    // Preparar la malla y condiciones de frontera
+    // ----------------------------
     double h, k;
     std::vector<std::vector<double>> V;
-    initialize_grid(M, N, V, h, k, boundary_func);
+    initialize_grid(M, N, V, h, k);
 
-    // ------------------------------------------------
-    // Resolver iterativamente ∇²V = f(x,y)
-    // ------------------------------------------------
+    // ----------------------------
+    // Resolver iterativamente Poisson/Laplace (ahora con bucle fijo 15000)
+    // ----------------------------
     int iterations = 0;
     auto t_start = std::chrono::high_resolution_clock::now();
-    solve_poisson(V, M, N, h, k, iterations, source_func);
-    auto t_end   = std::chrono::high_resolution_clock::now();
+    solve_poisson(V, M, N, h, k, 1e-6, iterations);  // tol ya no se usa internamente
+    auto t_end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double> elapsed = t_end - t_start;
-    std::cout << "Convergió en " << iterations << " iteraciones.\n";
-    std::cout << "Tiempo de cómputo: " << elapsed.count() << " segundos.\n";
+    std::cout << "Iteraciones realizadas: " << iterations << "\n";
+    std::cout << "Tiempo de cálculo: " << elapsed.count() << " segundos.\n";
 
-    // ------------------------------------------------
-    // Exportar a CSV y graficar con GNUplot
-    // ------------------------------------------------
-    std::string datafile = "poisson_parallel_" + std::to_string(M) + "x" 
-                         + std::to_string(N) + "_threads" 
-                         + std::to_string(num_threads) + "_" + label + ".csv";
+    // ----------------------------
+    // Exportar resultados a CSV y graficar con gnuplot
+    // ----------------------------
+    std::string csv_file = export_to_csv(V, M, N, h, k, case_selector);
+    std::string plot_file = "poisson_" + std::to_string(M) + "x" +
+                            std::to_string(N) + "_case" +
+                            std::to_string(case_selector) + ".png";
 
-    std::string pngfile  = "poisson_parallel_" + std::to_string(M) + "x" 
-                         + std::to_string(N) + "_threads" 
-                         + std::to_string(num_threads) + "_" + label + ".png";
+    plot_with_gnuplot(csv_file, plot_file, M, N);
+    std::cout << "Gráfica generada en: " << plot_file << "\n\n";
 
-    export_to_file(V, M, N, h, k, datafile);
-    plot_with_gnuplot(datafile, pngfile);
-
-    std::cout << "Gráfica generada en: " << pngfile << "\n";
     return 0;
 }
