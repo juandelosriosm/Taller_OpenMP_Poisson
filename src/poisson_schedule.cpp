@@ -9,34 +9,75 @@
 double x_ini, x_fin;
 double y_ini, y_fin;
 
-// Primera función fuente: constante
+// ------------------------------------------------
+// Fuentes para los casos
+// ------------------------------------------------
+// Caso 1: ∇²V = (x² + y²)e^{x y} (Ejemplo 1)
 double source_term1(double x, double y) {
-    return 4.0;
-}
-
-// Segunda función fuente: (x² + y²)e^{xy}
-double source_term2(double x, double y) {
     return (x * x + y * y) * std::exp(x * y);
 }
 
-// Condiciones de frontera para el caso 1
+// Caso 2: ∇²V = 0 (Laplace, Ejemplo 2)
+double source_term2(double x, double y) {
+    return 0.0;
+}
+
+// Caso 3: ∇²V = 4 (Ejemplo 3)
+double source_term3(double x, double y) {
+    return 4.0;
+}
+
+// Caso 4: ∇²V = x/y + y/x (Ejemplo 4)
+double source_term4(double x, double y) {
+    return x / y + y / x;
+}
+
+// ------------------------------------------------
+// Condiciones de frontera para los casos
+// ------------------------------------------------
+// Caso 1: ∇²V = (x² + y²)e^{x y}
 double boundary_condition1(double x, double y) {
-    if (std::abs(x - x_ini) < 1e-12) return (1.0 - y) * (1.0 - y);
-    if (std::abs(x - x_fin) < 1e-12) return (2.0 - y) * (2.0 - y);
-    if (std::abs(y - y_ini) < 1e-12) return x * x;
-    if (std::abs(y - y_fin) < 1e-12) return (x - 2.0) * (x - 2.0);
+    const double EPS = 1e-12;
+    if (std::abs(y - y_ini) < EPS) return 1.0;
+    else if (std::abs(x - x_ini) < EPS) return 1.0;
+    else if (std::abs(y - y_fin) < EPS) return std::exp(x);
+    else if (std::abs(x - x_fin) < EPS) return std::exp(2.0 * y);
     return 0.0;
 }
 
-// Condiciones de frontera para el caso 2
+// Caso 2: ∇²V = 0
 double boundary_condition2(double x, double y) {
-    if (std::abs(y - y_ini) < 1e-12) return 1.0;               // y = 0
-    else if (std::abs(x - x_ini) < 1e-12) return 1.0;          // x = 0
-    else if (std::abs(y - y_fin) < 1e-12) return std::exp(x);  // y = 1
-    else if (std::abs(x - x_fin) < 1e-12) return std::exp(2.0 * y); // x = 2
+    const double EPS = 1e-12;
+    if (std::abs(x - x_ini) < EPS) return std::log(y*y + 1.0);
+    if (std::abs(x - x_fin) < EPS) return std::log(y*y + 4.0);
+    if (std::abs(y - y_ini) < EPS) return 2.0 * std::log(x);
+    if (std::abs(y - y_fin) < EPS) return std::log(x*x + 4.0);
     return 0.0;
 }
 
+// Caso 3: ∇²V = 4
+double boundary_condition3(double x, double y) {
+    const double EPS = 1e-12;
+    if (std::abs(x - x_ini) < EPS) return (1.0 - y) * (1.0 - y);
+    if (std::abs(x - x_fin) < EPS) return (2.0 - y) * (2.0 - y);
+    if (std::abs(y - y_ini) < EPS) return x * x;
+    if (std::abs(y - y_fin) < EPS) return (x - 2.0) * (x - 2.0);
+    return 0.0;
+}
+
+// Caso 4: ∇²V = x/y + y/x
+double boundary_condition4(double x, double y) {
+    const double EPS = 1e-12;
+    if (std::abs(x - x_ini) < EPS) return y * std::log(y);
+    if (std::abs(x - x_fin) < EPS) return 2.0 * y * std::log(2.0 * y);
+    if (std::abs(y - y_ini) < EPS) return x * std::log(x);
+    if (std::abs(y - y_fin) < EPS) return x * std::log(4.0 * x);
+    return 0.0;
+}
+
+// ------------------------------------------------
+// Inicialización de la grilla y condiciones de frontera
+// ------------------------------------------------
 void initialize_grid(int M, int N, std::vector<std::vector<double>> &V, double &h, double &k,
                      double (*boundary)(double, double)) {
     h = (x_fin - x_ini) / M;
@@ -53,10 +94,11 @@ void initialize_grid(int M, int N, std::vector<std::vector<double>> &V, double &
     }
 }
 
-// Nueva versión de solve_poisson con control de paralelismo y scheduling
+// ------------------------------------------------
+// Solución iterativa de ∇²V = f(x,y) (paralelizado con OpenMP)
+// ------------------------------------------------
 void solve_poisson(std::vector<std::vector<double>> &V, int M, int N, double h, double k,
-                   double tol, int &iterations,
-                   double (*source)(double, double), int schedule_type) {
+                   double tol, int &iterations, double (*source)(double, double), int schedule_type) {
     double delta = 1.0;
     iterations = 0;
     std::vector<std::vector<double>> V_old = V;
@@ -112,7 +154,7 @@ void solve_poisson(std::vector<std::vector<double>> &V, int M, int N, double h, 
                     }
                 }
             }
-        } // fin paralelo
+        }
 
         ++iterations;
     }
@@ -170,9 +212,11 @@ int main() {
     std::cin >> num_threads;
 
     std::cout << "Seleccione función fuente y condiciones de frontera:\n";
-    std::cout << "1) f(x,y) = 4 (constante)\n";
-    std::cout << "2) f(x,y) = (x² + y²) * exp(xy)\n";
-    std::cout << "Opción (1 o 2): ";
+    std::cout << "1) f(x,y) = (x² + y²)e^{x y} (Ejemplo 1)\n";
+    std::cout << "2) f(x,y) = 0 (Laplace, Ejemplo 2)\n";
+    std::cout << "3) f(x,y) = 4 (Ejemplo 3)\n";
+    std::cout << "4) f(x,y) = x/y + y/x (Ejemplo 4)\n";
+    std::cout << "Opción (1, 2, 3 o 4): ";
     std::cin >> option;
 
     std::cout << "Seleccione scheduling para omp for:\n";
@@ -181,25 +225,43 @@ int main() {
     std::cout << "Opción (1 o 2): ";
     std::cin >> schedule_type;
 
-    if (M <= 0 || N <= 0 || num_threads < 1 || (option != 1 && option != 2) || (schedule_type != 1 && schedule_type != 2)) {
+    if (M <= 0 || N <= 0 || num_threads < 1 || (option < 1 || option > 4) || (schedule_type != 1 && schedule_type != 2)) {
         std::cerr << "Parámetros inválidos.\n";
         return 1;
     }
 
-    // Ajustar dominio y funciones según la opción
     double (*source_func)(double, double) = nullptr;
     double (*boundary_func)(double, double) = nullptr;
 
-    if (option == 1) {
-        x_ini = 1.0; x_fin = 2.0;
-        y_ini = 0.0; y_fin = 2.0;
-        source_func = source_term1;
-        boundary_func = boundary_condition1;
-    } else {
-        x_ini = 0.0; x_fin = 2.0;
-        y_ini = 0.0; y_fin = 1.0;
-        source_func = source_term2;
-        boundary_func = boundary_condition2;
+    switch (option) {
+        case 1: 
+            // Caso 1: f(x,y) = (x² + y²)e^{x y}
+            x_ini = 0.0;  x_fin = 2.0;
+            y_ini = 0.0;  y_fin = 1.0;
+            source_func = source_term1;
+            boundary_func = boundary_condition1;
+            break;
+        case 2: 
+            // Caso 2: f(x,y) = 0 (Laplace)
+            x_ini = 1.0;  x_fin = 2.0;
+            y_ini = 0.0;  y_fin = 1.0;
+            source_func = source_term2;
+            boundary_func = boundary_condition2;
+            break;
+        case 3: 
+            // Caso 3: f(x,y) = 4
+            x_ini = 1.0;  x_fin = 2.0;
+            y_ini = 0.0;  y_fin = 2.0;
+            source_func = source_term3;
+            boundary_func = boundary_condition3;
+            break;
+        case 4: 
+            // Caso 4: f(x,y) = x/y + y/x
+            x_ini = 1.0;  x_fin = 2.0;
+            y_ini = 1.0;  y_fin = 2.0;
+            source_func = source_term4;
+            boundary_func = boundary_condition4;
+            break;
     }
 
     omp_set_num_threads(num_threads);
@@ -219,14 +281,12 @@ int main() {
     std::cout << "Convergió en " << iterations << " iteraciones\n";
     std::cout << "Tiempo de cálculo: " << elapsed.count() << " segundos\n";
 
-    std::string option_str = (option == 1) ? "constante" : "variable";
-
-    std::string datafile = "poisson_schedule_" + std::to_string(M) + "x" + std::to_string(N) +
-                           "_threads" + std::to_string(num_threads) + "_" + option_str + "_sched" +
-                           std::to_string(schedule_type) + ".csv";
-    std::string outputfile = "poisson_schedule_" + std::to_string(M) + "x" + std::to_string(N) +
-                             "_threads" + std::to_string(num_threads) + "_" + option_str + "_sched" +
-                             std::to_string(schedule_type) + ".png";
+    std::string datafile = "poisson_case_" + std::to_string(M) + "x" + std::to_string(N) +
+                           "_threads" + std::to_string(num_threads) + "_case" + std::to_string(option) +
+                           "_sched" + std::to_string(schedule_type) + ".csv";
+    std::string outputfile = "poisson_case_" + std::to_string(M) + "x" + std::to_string(N) +
+                             "_threads" + std::to_string(num_threads) + "_case" + std::to_string(option) +
+                             "_sched" + std::to_string(schedule_type) + ".png";
 
     export_to_file(V, M, N, h, k, datafile);
     plot_with_gnuplot(datafile, outputfile);
