@@ -68,7 +68,7 @@ void solve_poisson(std::vector<std::vector<double>> &V, int M, int N, double h, 
         delta = 0.0;
         V_old = V;
 
-        #pragma omp parallel for reduction(max:delta) collapse(2)
+        #pragma omp parallel for collapse(2)
         for (int i = 1; i < M; ++i) {
             for (int j = 1; j < N; ++j) {
                 double x = x_ini + i * h;
@@ -82,6 +82,7 @@ void solve_poisson(std::vector<std::vector<double>> &V, int M, int N, double h, 
                 ) / denom;
 
                 double diff = std::abs(V_new - V[i][j]);
+
                 #pragma omp critical
                 if (diff > delta) delta = diff;
 
@@ -122,8 +123,7 @@ void plot_with_gnuplot(const std::string &datafile, const std::string &outputfil
         "set datafile separator \",\"\n"
         "set style data points\n"
         "set ticslevel 0\n"
-        "splot '" + datafile + "' using 1:2:3 with points notitle\n"
-        "exit\n";
+        "splot '" + datafile + "' using 1:2:3 with points notitle\n";
 
     std::ofstream gpfile("plot_script.gp");
     gpfile << gp_script;
