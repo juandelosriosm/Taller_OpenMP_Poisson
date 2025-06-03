@@ -181,19 +181,19 @@ void initialize_grid(int M, int N, std::vector<std::vector<double>> &V, double &
 
 // ------------------------------------------------
 // Solución iterativa de Poisson/Laplace por diferencias finitas
+//   Modificado para iterar siempre 15000 veces.
 // ------------------------------------------------
 void solve_poisson(std::vector<std::vector<double>> &V,
                    int M, int N,
                    double h, double k,
-                   double tol, int &iterations)
+                   double /*tol*/,    // ahora ignoramos la tolerancia
+                   int &iterations)
 {
-    double delta = 1.0;
-    iterations = 0;
+    // Ejecutaremos exactamente 15000 iteraciones sin comprobar delta ni tol
     std::vector<std::vector<double>> V_old = V;
 
-    while (delta > tol) {
-        delta = 0.0;
-        V_old = V;
+    for (int iter = 0; iter < 15000; ++iter) {
+        V_old = V;  // Guardamos el estado anterior
 
         for (int i = 1; i < M; ++i) {
             for (int j = 1; j < N; ++j) {
@@ -207,12 +207,13 @@ void solve_poisson(std::vector<std::vector<double>> &V,
                 double denom = 2.0 * (h * h + k * k);
 
                 double V_new = numer / denom;
-                delta = std::max(delta, std::abs(V_new - V[i][j]));
                 V[i][j] = V_new;
             }
         }
-        ++iterations;
     }
+
+    // Al finalizar el bucle, indicamos que hicimos 15000 iteraciones
+    iterations = 15000;
 }
 
 // ------------------------------------------------
@@ -346,15 +347,15 @@ int main() {
     initialize_grid(M, N, V, h, k);
 
     // ----------------------------
-    // Resolver iterativamente Poisson/Laplace
+    // Resolver iterativamente Poisson/Laplace (ahora con bucle fijo 15000)
     // ----------------------------
     int iterations = 0;
     auto t_start = std::chrono::high_resolution_clock::now();
-    solve_poisson(V, M, N, h, k, 1e-6, iterations);
+    solve_poisson(V, M, N, h, k, 1e-6, iterations);  // tol ya no se usa internamente
     auto t_end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double> elapsed = t_end - t_start;
-    std::cout << "Convergió en " << iterations << " iteraciones.\n";
+    std::cout << "Iteraciones realizadas: " << iterations << "\n";
     std::cout << "Tiempo de cálculo: " << elapsed.count() << " segundos.\n";
 
     // ----------------------------
@@ -370,4 +371,3 @@ int main() {
 
     return 0;
 }
-
