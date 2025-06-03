@@ -146,7 +146,8 @@ void solve_poisson(std::vector<std::vector<double>> &V, int M, int N, double h, 
     }
 
     if (iterations >= 15000) {
-        std::cout << "Se alcanzó el máximo de 15000 iteraciones sin cumplir la tolerancia.\n";
+        std::cout << "Se alcanzó el máximo de 15000 iteraciones sin cumplir la tolerancia usando scheduling "
+                  << ((schedule_type == 1) ? "static" : "dynamic") << ".\n";
     }
 }
 
