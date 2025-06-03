@@ -150,27 +150,27 @@ void initialize_grid(int M, int N,
 }
 
 // ------------------------------------------------
-// Solución iterativa de ∇²V = f(x,y) (paralelo con collapse)
+// Solución iterativa de ∇²V = f(x,y) (paralelo con #pragma omp parallel for)
 // ------------------------------------------------
 void solve_poisson(std::vector<std::vector<double>> &V,
                    int M, int N,
                    double h, double k,
-                   double tol, int &iterations,
+                   int &iterations,
                    double (*source)(double, double))
 {
-    double delta = 1.0;
-    iterations = 0;
     std::vector<std::vector<double>> V_old = V;
 
     double h2 = h * h;
     double k2 = k * k;
     double denom = 2.0 * (h2 + k2);
 
-    while (delta > tol) {
-        delta = 0.0;
+    // Ahora el número de iteraciones está limitado a 15000
+    while (iterations < 15000) {
+        double delta = 0.0;
         V_old = V;
 
-        #pragma omp parallel for collapse(2)
+        // Paralelización del bucle de i con reducción en delta
+        #pragma omp parallel for collapse(2) reduction(max:delta)
         for (int i = 1; i < M; ++i) {
             for (int j = 1; j < N; ++j) {
                 double x = x_ini + i * h;
@@ -184,7 +184,6 @@ void solve_poisson(std::vector<std::vector<double>> &V,
                 ) / denom;
 
                 double diff = std::abs(V_new - V[i][j]);
-                #pragma omp critical
                 if (diff > delta) delta = diff;
 
                 V[i][j] = V_new;
@@ -357,9 +356,8 @@ int main() {
     // Resolver iterativamente ∇²V = f(x,y)
     // ------------------------------------------------
     int iterations = 0;
-    const double tol = 1e-6;
     auto t_start = std::chrono::high_resolution_clock::now();
-    solve_poisson(V, M, N, h, k, tol, iterations, source_func);
+    solve_poisson(V, M, N, h, k, iterations, source_func);
     auto t_end   = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double> elapsed = t_end - t_start;
