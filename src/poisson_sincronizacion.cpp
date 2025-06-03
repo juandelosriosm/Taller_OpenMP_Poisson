@@ -202,9 +202,9 @@ int main() {
 
     std::string option_str = (option == 1) ? "constante" : "variable";
 
-    std::string datafile = "poisson_parallel_" + std::to_string(M) + "x" + std::to_string(N) +
+    std::string datafile = "poisson_sincronizacion_" + std::to_string(M) + "x" + std::to_string(N) +
                            "_threads" + std::to_string(num_threads) + "_" + option_str + ".csv";
-    std::string outputfile = "poisson_parallel_" + std::to_string(M) + "x" + std::to_string(N) +
+    std::string outputfile = "poisson_sincronizacion_" + std::to_string(M) + "x" + std::to_string(N) +
                              "_threads" + std::to_string(num_threads) + "_" + option_str + ".png";
 
     export_to_file(V, M, N, h, k, datafile);

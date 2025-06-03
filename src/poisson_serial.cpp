@@ -174,7 +174,7 @@ int main() {
     std::cout << "Tiempo de cálculo: " << elapsed.count() << " segundos\n";
 
     std::string csv_file = export_to_csv(V, M, N, h, k, case_selector);
-    std::string plot_file = "poisson_" + std::to_string(M) + "x" + std::to_string(N) + "_case" + std::to_string(case_selector) + ".png";
+    std::string plot_file = "poisson_serial" + std::to_string(M) + "x" + std::to_string(N) + "_case" + std::to_string(case_selector) + ".png";
 
     plot_with_gnuplot(csv_file, plot_file, M, N);
 

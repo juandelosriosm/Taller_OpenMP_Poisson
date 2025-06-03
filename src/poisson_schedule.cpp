@@ -221,10 +221,10 @@ int main() {
 
     std::string option_str = (option == 1) ? "constante" : "variable";
 
-    std::string datafile = "poisson_parallel_" + std::to_string(M) + "x" + std::to_string(N) +
+    std::string datafile = "poisson_schedule_" + std::to_string(M) + "x" + std::to_string(N) +
                            "_threads" + std::to_string(num_threads) + "_" + option_str + "_sched" +
                            std::to_string(schedule_type) + ".csv";
-    std::string outputfile = "poisson_parallel_" + std::to_string(M) + "x" + std::to_string(N) +
+    std::string outputfile = "poisson_schedule_" + std::to_string(M) + "x" + std::to_string(N) +
                              "_threads" + std::to_string(num_threads) + "_" + option_str + "_sched" +
                              std::to_string(schedule_type) + ".png";
 
