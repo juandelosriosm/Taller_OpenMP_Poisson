@@ -104,7 +104,7 @@ void solve_poisson(std::vector<std::vector<double>> &V,
     double delta = 0.0;
     const int block_size = 16;  // Puedes ajustar este valor según el tamaño de M, N
 
-    while (true) {
+    while (iterations < 15000) {  // Limitar a 15,000 iteraciones
         V_old = V;       // Guardamos el estado anterior
         double local_max = 0.0;
 
@@ -324,4 +324,3 @@ int main() {
 
     return 0;
 }
-
