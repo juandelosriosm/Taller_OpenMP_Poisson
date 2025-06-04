@@ -102,8 +102,8 @@ void solve_poisson(std::vector<std::vector<double>> &V,
     iterations = 0;
     double delta = 0.0;
 
-    // Repetir hasta que el máximo cambio sea menor que tol
-    while (iterations < 15000) {  // Limitar a 15,000 iteraciones
+    // Limitar a un máximo de 15,000 iteraciones
+    while (iterations < 15000) {
         V_old = V;       // Guardamos el estado anterior
         double local_max = 0.0;
 
@@ -136,7 +136,9 @@ void solve_poisson(std::vector<std::vector<double>> &V,
 
         // ------------------------------------------------
         // Incrementar contador de iteraciones
+        // Usamos atomic para evitar condiciones de carrera
         // ------------------------------------------------
+        #pragma omp atomic
         iterations++;
 
         // ------------------------------------------------
@@ -298,4 +300,5 @@ int main() {
 
     return 0;
 }
+
 
